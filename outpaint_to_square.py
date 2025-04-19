@@ -1,15 +1,15 @@
 import os
 from PIL import Image
 from diffusers import StableDiffusionInpaintPipeline
+from transformers import pipeline
 import torch
 
 # --- CONFIGURATION ---
 INPUT_FOLDER = "input_images"
 OUTPUT_FOLDER = "outpainted_images"
 MODEL_ID = "stabilityai/stable-diffusion-2-inpainting"
-#MODEL_ID = "stable-diffusion-v1-5/stable-diffusion-inpainting"
-PROMPT = "a realistic image of a car, the background seamlessly extends to match the original scene, matching the original background."
-NEGATIVE_PROMPT = "new objects, text, abrupt color changes, mismatched background, blurry, distorted, extra objects, watermark, frame, border, signature"
+DEFAULT_PROMPT = "matching the original style" #Append default end
+
 GUIDANCE_SCALE = 6
 NUM_INFERENCE_STEPS = 150
 
@@ -22,6 +22,9 @@ pipe = StableDiffusionInpaintPipeline.from_pretrained(
     torch_dtype=torch.float16 if device == "cuda" else torch.float32
 )
 pipe = pipe.to(device)
+
+# Image Captioning Initialization
+image_to_text = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base", device=device)
 
 def make_square_canvas(img, fill=(255, 255, 255)):
     w, h = img.size
@@ -46,6 +49,11 @@ for filename in os.listdir(INPUT_FOLDER):
         img = Image.open(img_path).convert("RGB")
         square_img, box = make_square_canvas(img)
         mask = make_mask(square_img, box)
+
+        # Generate Caption and Concatenate
+        caption = image_to_text(img)[0]['generated_text'] #Image Description
+        PROMPT = caption + " the background seamlessly extends to match the original scene. " + DEFAULT_PROMPT #Adding the new prompt
+
         result = pipe(
             prompt=PROMPT,
             negative_prompt=NEGATIVE_PROMPT,
@@ -58,3 +66,5 @@ for filename in os.listdir(INPUT_FOLDER):
         print(f"Saved: {os.path.join(OUTPUT_FOLDER, filename)}")
 
 print("Batch outpainting complete!")
+
+
