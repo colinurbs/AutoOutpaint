@@ -1,0 +1,7 @@
+# Ignore all files inside these folders
+input_images/*
+outpainted_images/*
+
+# Except for the directories themselves (so they're tracked)
+!input_images/
+!outpainted_images/

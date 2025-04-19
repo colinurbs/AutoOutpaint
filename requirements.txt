@@ -5,4 +5,5 @@ torch
 torchvision
 pillow
 safetensors
+sentencepiece
 
